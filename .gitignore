@@ -6,3 +6,5 @@ yarn-error.log
 website/build
 docker-compose.dockest-generated.yml
 dockest-error.json
+.npmrc
+pnpm-lock.yaml
