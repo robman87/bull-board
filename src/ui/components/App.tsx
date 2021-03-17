@@ -1,14 +1,15 @@
 import React from 'react'
 import { BrowserRouter, Redirect, Route, Switch } from 'react-router-dom'
+import { ToastContainer } from 'react-toastify'
+import { Api } from '../services/Api'
 import { Header } from './Header/Header'
 import { useStore } from '../hooks/useStore'
 import { Menu } from './Menu/Menu'
-
 import { QueuePage } from './QueuePage/QueuePage'
 import { RedisStats } from './RedisStats/RedisStats'
 
-export const App = ({ basePath }: { basePath: string }) => {
-  const { state, actions, selectedStatuses } = useStore(basePath)
+export const App = ({ basePath, api }: { basePath: string; api: Api }) => {
+  const { state, actions, selectedStatuses } = useStore(api)
 
   return (
     <BrowserRouter basename={basePath}>
@@ -39,13 +40,18 @@ export const App = ({ basePath }: { basePath: string }) => {
               />
 
               <Route exact path="/">
-                <Redirect to={`/queue/${state.data?.queues[0].name}`} />
+                {!!state.data &&
+                  Array.isArray(state.data?.queues) &&
+                  state.data.queues.length > 0 && (
+                    <Redirect to={`/queue/${state.data?.queues[0].name}`} />
+                  )}
               </Route>
             </Switch>
           )}
         </div>
       </main>
       <Menu queues={state.data?.queues.map((q) => q.name)} />
+      <ToastContainer />
     </BrowserRouter>
   )
 }

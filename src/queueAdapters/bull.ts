@@ -4,14 +4,18 @@ import {
   JobCounts,
   JobStatus,
   QueueAdapter,
+  QueueAdapterOptions,
 } from '../@types/app'
+import { BaseAdapter } from './base'
 
-export class BullAdapter implements QueueAdapter {
-  public get client(): Promise<Queue['client']> {
-    return Promise.resolve(this.queue.client)
+export class BullAdapter extends BaseAdapter implements QueueAdapter {
+  constructor(public queue: Queue, options: Partial<QueueAdapterOptions> = {}) {
+    super(options)
   }
 
-  constructor(public queue: Queue) {}
+  public getClient(): Promise<Queue['client']> {
+    return Promise.resolve(this.queue.client)
+  }
 
   public getName(): string {
     return this.queue.name

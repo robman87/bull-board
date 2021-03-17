@@ -5,7 +5,7 @@ import { parse as parseRedisInfo } from 'redis-info'
 
 import * as api from '../@types/api'
 import * as app from '../@types/app'
-import { JobStatus } from '../@types/app'
+import { JobStatus, QueueAdapter } from '../@types/app'
 import { Status } from '../ui/components/constants'
 
 type MetricName = keyof app.ValidMetrics
@@ -21,7 +21,7 @@ const metrics: MetricName[] = [
 const getStats = async ({
   queue,
 }: app.BullBoardQueue): Promise<app.ValidMetrics> => {
-  const redisClient = await queue.client
+  const redisClient = await queue.getClient()
   const redisInfoRaw = await redisClient.info()
   const redisInfo = parseRedisInfo(redisInfoRaw)
 
@@ -39,7 +39,7 @@ const getStats = async ({
   return validMetrics
 }
 
-const formatJob = (job: Job | JobMq): app.AppJob => {
+const formatJob = (job: Job | JobMq, queue: QueueAdapter): app.AppJob => {
   const jobProps = job.toJSON()
 
   return {
@@ -51,11 +51,11 @@ const formatJob = (job: Job | JobMq): app.AppJob => {
     attempts: jobProps.attemptsMade,
     delay: job.opts.delay,
     failedReason: jobProps.failedReason,
-    stacktrace: jobProps.stacktrace,
+    stacktrace: jobProps.stacktrace ? jobProps.stacktrace.filter(Boolean) : [],
     opts: jobProps.opts,
-    data: jobProps.data,
+    data: queue.format('data', jobProps.data),
     name: jobProps.name,
-    returnValue: jobProps.returnvalue,
+    returnValue: queue.format('returnValue', jobProps.returnvalue),
   }
 }
 
@@ -92,7 +92,8 @@ const getDataForQueues = async (
       return {
         name,
         counts: counts as Record<Status, number>,
-        jobs: jobs.filter((j) => j && typeof j === 'object').map(formatJob),
+        jobs: jobs.filter(Boolean).map((job) => formatJob(job, queue)),
+        readOnlyMode: queue.readOnlyMode,
       }
     }),
   )

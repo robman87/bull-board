@@ -1,7 +1,7 @@
 import { Job, JobOptions } from 'bull'
 import { Job as JobMq, JobsOptions } from 'bullmq'
-import React from 'react'
 import * as Redis from 'ioredis'
+import React from 'react'
 import { Status } from '../ui/components/constants'
 
 export type JobCleanStatus =
@@ -16,7 +16,10 @@ export type JobStatus = Status
 export type JobCounts = Record<JobStatus, number>
 
 export interface QueueAdapter {
-  readonly client: Promise<Redis.Redis>
+  readonly readOnlyMode: boolean
+
+  getClient(): Promise<Redis.Redis>
+
   getName(): string
 
   getJob(id: string): Promise<Job | JobMq | undefined | null>
@@ -30,6 +33,17 @@ export interface QueueAdapter {
   getJobCounts(...jobStatuses: JobStatus[]): Promise<JobCounts>
 
   clean(queueStatus: JobCleanStatus, graceTimeMs: number): Promise<any>
+
+  setFormatter(
+    field: 'data' | 'returnValue',
+    formatter: (data: any) => any,
+  ): void
+
+  format(field: 'data' | 'returnValue', data: any): any
+}
+
+export interface QueueAdapterOptions {
+  readOnlyMode: boolean
 }
 
 export interface BullBoardQueue {
@@ -57,7 +71,7 @@ export interface AppJob {
   progress: JobMq['progress']
   attempts: JobMq['attemptsMade']
   failedReason: JobMq['failedReason']
-  stacktrace: string[] | null
+  stacktrace: string[]
   opts: JobsOptions | JobOptions
   data: JobMq['data']
   name: JobMq['name']
@@ -69,6 +83,7 @@ export interface AppQueue {
   name: string
   counts: Record<Status, number>
   jobs: AppJob[]
+  readOnlyMode: boolean
 }
 
 export type SelectedStatuses = Record<AppQueue['name'], Status>
